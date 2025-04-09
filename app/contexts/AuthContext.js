@@ -22,21 +22,32 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkUserLoggedIn = async () => {
       try {
-        // Récupérer le token du localStorage
-        const token = localStorage.getItem('token');
+        setLoading(true);
         
-        if (!token) {
+        // Récupérer les informations de l'utilisateur du localStorage
+        const userData = localStorage.getItem('user');
+        
+        if (!userData) {
           setLoading(false);
           return;
         }
 
-        // Récupérer les informations de l'utilisateur du localStorage
-        const userData = JSON.parse(localStorage.getItem('user'));
-        if (userData) {
-          setUser(userData);
+        // Vérifier si le user est valide avec le serveur
+        const response = await fetch('/api/auth/me');
+        
+        if (!response.ok) {
+          // Si la session n'est plus valide, nettoyer le localStorage
+          localStorage.removeItem('user');
+          setLoading(false);
+          return;
         }
+        
+        const data = await response.json();
+        setUser(data.user || JSON.parse(userData));
       } catch (error) {
         console.error("Erreur lors de la vérification de l'authentification:", error);
+        // En cas d'erreur, on considère que l'utilisateur n'est pas connecté
+        localStorage.removeItem('user');
       } finally {
         setLoading(false);
       }
@@ -65,8 +76,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error || 'Erreur lors de la connexion');
       }
 
-      // Stocker les informations d'authentification
-      localStorage.setItem('token', data.token);
+      // Stocker les informations de l'utilisateur dans le localStorage
       localStorage.setItem('user', JSON.stringify(data.user));
       
       // Mettre à jour l'état
@@ -81,11 +91,22 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Fonction de déconnexion
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    router.push('/login');
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      localStorage.removeItem('user');
+      setUser(null);
+      router.push('/login');
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      // Même en cas d'erreur, on déconnecte l'utilisateur côté client
+      localStorage.removeItem('user');
+      setUser(null);
+      router.push('/login');
+    }
   };
 
   // Valeur à fournir via le contexte

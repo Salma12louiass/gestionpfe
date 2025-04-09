@@ -9,6 +9,99 @@ const fs = require("fs");
 
 
 
+// Ajoutez ces dépendances au début du fichier après les imports existants
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+
+// Définir une clé secrète pour les JWT (à placer dans un fichier .env en production)
+const JWT_SECRET = 'votre-secret-key-a-changer-en-production';
+
+// Route d'authentification améliorée
+app.post("/api/auth/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email et mot de passe requis" });
+  }
+
+  // Rechercher l'utilisateur par email
+  const query = "SELECT * FROM Login WHERE email = ?";
+  db.query(query, [email], (err, results) => {
+    if (err) {
+      console.error("Erreur de connexion à la base de données:", err);
+      return res.status(500).json({ error: "Erreur serveur" });
+    }
+
+    if (results.length === 0) {
+      return res.status(401).json({ error: "Email ou mot de passe incorrect" });
+    }
+
+    const user = results[0];
+
+    // Vérifier le mot de passe (en prod, utilisez bcrypt.compare)
+    // Pour simplifier, je fais une comparaison directe, mais idéalement les mots de passe devraient être hachés
+    if (password !== user.password) {
+      return res.status(401).json({ error: "Email ou mot de passe incorrect" });
+    }
+
+    // Récupérer les informations de l'utilisateur selon son rôle
+    let userInfoQuery;
+    switch (user.role) {
+      case 'etudiant':
+        userInfoQuery = "SELECT * FROM Etudiant WHERE idEtudiant = ?";
+        break;
+      case 'tuteur':
+        userInfoQuery = "SELECT * FROM Tuteur WHERE idTuteur = ?";
+        break;
+      case 'encadrant':
+        userInfoQuery = "SELECT * FROM Encadrant WHERE idEncadrant = ?";
+        break;
+      case 'responsableFiliere':
+        userInfoQuery = "SELECT * FROM ResponsableFiliere WHERE idResponsableFiliere = ?";
+        break;
+      default:
+        return res.status(400).json({ error: "Type d'utilisateur non reconnu" });
+    }
+
+    db.query(userInfoQuery, [user.user_id], (err, userResults) => {
+      if (err) {
+        console.error("Erreur lors de la récupération des informations utilisateur:", err);
+        return res.status(500).json({ error: "Erreur serveur" });
+      }
+
+      if (userResults.length === 0) {
+        return res.status(404).json({ error: "Utilisateur non trouvé" });
+      }
+
+      const userInfo = userResults[0];
+
+      // Construire l'objet utilisateur à retourner
+      const userResponse = {
+        id: user.user_id,
+        email: userInfo.email || user.email,
+        role: user.role,
+        nom: userInfo.nom,
+        prenom: userInfo.prenom
+      };
+
+      // Générer un token JWT
+      const token = jwt.sign(
+        {
+          id: userResponse.id,
+          role: userResponse.role,
+          email: userResponse.email
+        },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      // En cas de succès, renvoyer les informations de l'utilisateur et le token
+      res.json({ user: userResponse, token });
+    });
+  });
+});
+
+
 const app = express();
 const port = 5000;
 

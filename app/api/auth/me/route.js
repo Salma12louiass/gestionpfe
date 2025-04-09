@@ -4,14 +4,13 @@ import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 
 // Secret pour le JWT (à placer dans un fichier .env en production)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'votre-secret-key-a-changer-en-production';
 
-export async function GET(request) {
+export async function GET() {
   try {
-    // Récupérer le token des cookies ou des headers
+    // Récupérer le token des cookies
     const cookieStore = cookies();
-    const token = cookieStore.get('token')?.value 
-      || request.headers.get('Authorization')?.replace('Bearer ', '');
+    const token = cookieStore.get('token')?.value;
 
     if (!token) {
       return NextResponse.json(

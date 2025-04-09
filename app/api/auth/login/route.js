@@ -1,10 +1,6 @@
 // app/api/auth/login/route.js
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-
-// Secret pour le JWT (à placer dans un fichier .env en production)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+import { cookies } from 'next/headers';
 
 export async function POST(request) {
   try {
@@ -36,21 +32,18 @@ export async function POST(request) {
       );
     }
 
-    // Générer un token JWT
-    const token = jwt.sign(
-      {
-        id: data.user.id,
-        role: data.user.role,
-        email: data.user.email,
-      },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Définir le cookie avec le token JWT
+    const cookieStore = cookies();
+    cookieStore.set('token', data.token, { 
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24, // 1 jour
+      path: '/',
+    });
 
-    // Retourner les informations de l'utilisateur et le token
+    // Retourner les informations de l'utilisateur (sans le token qui est dans le cookie)
     return NextResponse.json({
-      user: data.user,
-      token,
+      user: data.user
     });
   } catch (error) {
     console.error('Erreur d\'authentification:', error);

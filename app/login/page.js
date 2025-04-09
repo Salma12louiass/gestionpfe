@@ -1,7 +1,7 @@
 // app/login/page.js
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import Image from "next/image";
 import Link from 'next/link';
@@ -13,7 +13,18 @@ const LoginForm = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const searchParams = useSearchParams();
+  const { login, isAuthenticated } = useAuth();
+
+  // Récupérer l'URL de redirection après connexion si présente
+  const redirectTo = searchParams.get('redirectTo') || '/';
+
+  // Rediriger si déjà authentifié
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push(redirectTo);
+    }
+  }, [isAuthenticated, redirectTo, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,10 +32,10 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      const user = await login(email, password);
-      
-      // Redirection en fonction du rôle gérée par RedirectIfAuthenticated
+      await login(email, password);
+      router.push(redirectTo);
     } catch (err) {
+      console.error("Erreur de connexion:", err);
       setError(err.message || "Une erreur est survenue lors de la connexion");
     } finally {
       setIsLoading(false);
@@ -132,6 +143,22 @@ const LoginForm = () => {
             </button>
           </div>
         </form>
+        
+        {/* Section de débogage (à retirer en production) */}
+        <div className="mt-4 p-4 bg-gray-100 rounded-lg dark:bg-gray-700">
+          <details>
+            <summary className="cursor-pointer text-sm text-gray-600 dark:text-gray-400">Informations de débogage</summary>
+            <div className="mt-2 text-xs">
+              <p>Pour tester la connexion, utilisez:</p>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li><strong>Étudiant:</strong> admin@est.ma / password</li>
+                <li><strong>Encadrant:</strong> encadrant@est.ma / password</li>
+                <li><strong>Tuteur:</strong> tuteur@est.ma / password</li>
+                <li><strong>Responsable:</strong> responsable@est.ma / password</li>
+              </ul>
+            </div>
+          </details>
+        </div>
       </div>
     </div>
   );
@@ -139,8 +166,7 @@ const LoginForm = () => {
 
 export default function LoginPage() {
   return (
-    <RedirectIfAuthenticated>
-      <LoginForm />
-    </RedirectIfAuthenticated>
+    // RedirectIfAuthenticated a été modifié pour gérer la redirection dans le composant LoginForm lui-même
+    <LoginForm />
   );
 }
