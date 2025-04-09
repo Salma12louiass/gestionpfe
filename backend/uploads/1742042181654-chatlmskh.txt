@@ -1,0 +1,565 @@
+// app/livrables/page.jsx
+"use client";
+import { useState, useEffect, useRef } from "react";
+import UploadLivrable from "./upload";
+import { Plus, Search, Trash, Edit, Eye, ChevronDown, Download } from "lucide-react";
+import Sidebar from "../components/sidebar";
+import Navbar from "../components/Navbar";
+
+const StatutLivrable = {
+  Brouillon: "Brouillon",
+  Soumis: "Soumis",
+  Validé: "Validé",
+  Rejeté: "Rejeté",
+};
+
+const TypesLivrable = {
+  DocumentationTechnique: "Documentation technique",
+  Rapport: "Rapport",
+  Presentation: "Présentation",
+  CahierDesCharges: "Cahier des charges",
+  VideoDemonstration: "Vidéo de démonstration",
+  ArticleScientifique: "Article scientifique",
+};
+
+export default function LivrablesPage() {
+  const [livrables, setLivrables] = useState([]);
+  const [selectedLivrable, setSelectedLivrable] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [actionMenuId, setActionMenuId] = useState(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [livrableToDelete, setLivrableToDelete] = useState(null);
+
+  const actionMenuRef = useRef(null);
+
+  useEffect(() => {
+    const fetchLivrables = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/livrables');
+        if (!response.ok) {
+          throw new Error(HTTP error! Status: ${response.status});
+        }
+        const data = await response.json();
+        console.log('Livrables fetched successfully:', data); // Log the data
+        setLivrables(data);
+      } catch (error) {
+        console.error('Error fetching livrables:', error);
+        alert('Failed to fetch livrables. Please check the backend server.');
+      }
+    };
+
+    fetchLivrables();
+  }, []);
+
+  const openModal = (livrable) => {
+    setSelectedLivrable(livrable);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedLivrable(null);
+  };
+
+  const openUploadModal = () => setShowUploadModal(true);
+  const closeUploadModal = () => setShowUploadModal(false);
+
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(http://localhost:5000/api/livrables/${id}, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete livrable');
+      }
+      setLivrables(livrables.filter((livrable) => livrable.id !== id));
+      alert("Livrable supprimé avec succès !");
+    } catch (error) {
+      console.error('Error deleting livrable:', error);
+      alert("Échec de la suppression du livrable.");
+    }
+  };
+
+  const handleEdit = (id) => {
+    alert(Éditer le livrable avec l'ID : ${id});
+  };
+
+  const handleView = (id) => {
+    const livrable = livrables.find((livrable) => livrable.id === id);
+    if (livrable) {
+      openModal(livrable);
+    }
+  };
+
+  const handleDownload = () => {
+    if (selectedLivrable && selectedLivrable.fichierUrl) {
+      const a = document.createElement("a");
+      a.href = selectedLivrable.fichierUrl;
+      a.download = selectedLivrable.titre;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      alert(Téléchargement du fichier "${selectedLivrable.titre}" réussi !);
+    } else {
+      alert("Fichier non trouvé !");
+    }
+  };
+
+  const toggleActionMenu = (id) => {
+    setActionMenuId(actionMenuId === id ? null : id);
+  };
+
+  const handleUpload = (newLivrable) => {
+    setLivrables([...livrables, newLivrable]);
+  };
+
+  const filteredLivrables = livrables.filter((livrable) =>
+    livrable.titre.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="flex">
+      <Sidebar />
+      <div className="w-full">
+        <Navbar />
+        <div className="p-6 max-w-6xl mx-auto bg-gray-50 min-h-screen dark:bg-gray-900">
+          <nav className="bg-white shadow-md p-4 rounded-lg mb-6 dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-gray-800 flex-grow text-center mx-4 dark:text-white">
+                📁 Suivi des Livrables
+              </h1>
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition dark:bg-blue-600 dark:hover:bg-blue-700"
+                onClick={openUploadModal}
+              >
+                <Plus size={18} />
+                <span>Soumettre un livrable</span>
+              </button>
+            </div>
+          </nav>
+
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Show</span>
+              <select
+                className="px-2 py-1 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                onChange={(e) => alert(Afficher ${e.target.value} entrées)}
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span className="text-sm text-gray-600 dark:text-gray-400">entries</span>
+            </div>
+
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <Search size={18} className="absolute left-3 top-2.5 text-gray-400 dark:text-gray-500" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg dark:bg-gray-800">
+            <table className="w-full">
+              <thead className="bg-gray-100 dark:bg-gray-700">
+                <tr>
+                  <th className="p-4 text-left text-gray-700 dark:text-white">Titre</th>
+                  <th className="p-4 text-left text-gray-700 dark:text-white">Type</th>
+                  <th className="p-4 text-left text-gray-700 dark:text-white">Date de soumission</th>
+                  <th className="p-4 text-left text-gray-700 dark:text-white">Version</th>
+                  <th className="p-4 text-left text-gray-700 dark:text-white">Statut</th>
+                  <th className="p-4 text-center text-gray-700 dark:text-white">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLivrables.map((livrable) => (
+                  <tr
+                    key={livrable.id}
+                    className="border-b border-gray-100 hover:bg-gray-50 transition dark:hover:bg-gray-700"
+                  >
+                    <td className="p-4 text-gray-800 dark:text-white">{livrable.titre}</td>
+                    <td className="p-4 text-gray-600 dark:text-gray-400">{livrable.type}</td>
+                    <td className="p-4 text-gray-600 dark:text-gray-400">{livrable.dateSoumission}</td>
+                    <td className="p-4 text-gray-600 dark:text-gray-400">v{livrable.version}</td>
+                    <td className="p-4">
+                      <span
+                        className={px-3 py-1 rounded-full text-sm font-semibold ${
+                          livrable.statut === StatutLivrable.Validé
+                            ? "bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200"
+                            : livrable.statut === StatutLivrable.Soumis
+                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-200"
+                            : livrable.statut === StatutLivrable.Rejeté
+                            ? "bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-200"
+                            : "bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200"
+                        }}
+                      >
+                        {livrable.statut}
+                      </span>
+                    </td>
+                    <td className="p-4 text-center relative">
+                      <button
+                        className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                        onClick={() => toggleActionMenu(livrable.id)}
+                      >
+                        <span>Action</span>
+                        <ChevronDown size={16} />
+                      </button>
+                      {actionMenuId === livrable.id && (
+                        <div
+                          ref={actionMenuRef}
+                          className="absolute right-4 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 dark:bg-gray-800 dark:border-gray-700"
+                        >
+                          <button
+                            className="w-full flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 transition dark:text-white dark:hover:bg-gray-700"
+                            onClick={() => handleView(livrable.id)}
+                          >
+                            <Eye size={16} />
+                            <span>Voir</span>
+                          </button>
+                          <button
+                            className="w-full flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 transition dark:text-white dark:hover:bg-gray-700"
+                            onClick={() => handleEdit(livrable.id)}
+                          >
+                            <Edit size={16} />
+                            <span>Éditer</span>
+                          </button>
+                          <button
+                            className="w-full flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-100 transition dark:text-red-400 dark:hover:bg-red-800"
+                            onClick={() => handleDelete(livrable.id)}
+                          >
+                            <Trash size={16} />
+                            <span>Supprimer</span>
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex justify-between items-center mt-6">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Affichage de 1 à {filteredLivrables.length} sur {filteredLivrables.length} éléments
+            </span>
+            <div className="flex">
+              <button className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-l-lg hover:bg-gray-100 transition flex items-center justify-center dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600">
+                <span>Précédent</span>
+              </button>
+              <button className="px-4 py-2 bg-blue-500 text-white border-t border-b border-blue-500 hover:bg-blue-600 transition flex items-center justify-center dark:bg-blue-600 dark:hover:bg-blue-700">
+                <span>1</span>
+              </button>
+              <button className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-r-lg hover:bg-gray-100 transition flex items-center justify-center dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600">
+                <span>Suivant</span>
+              </button>
+            </div>
+          </div>
+
+          {showModal && selectedLivrable && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+              <div className="bg-white p-6 rounded-xl shadow-lg w-96 relative dark:bg-gray-800">
+                <button
+                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition dark:text-gray-400 dark:hover:text-gray-200"
+                  onClick={closeModal}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
+                <h2 className="text-xl font-bold text-gray-800 mb-4 dark:text-white">📂 {selectedLivrable.titre}</h2>
+                <p className="text-gray-600 mb-2 dark:text-gray-400">📄 <b>Type :</b> {selectedLivrable.type}</p>
+                <p className="text-gray-600 mb-2 dark:text-gray-400">🗓️ <b>Date de soumission :</b> {selectedLivrable.dateSoumission}</p>
+                <p className="text-gray-600 mb-2 dark:text-gray-400">📝 <b>Version :</b> v{selectedLivrable.version}</p>
+                <p className="text-gray-600 mb-2 dark:text-gray-400">🏷️ <b>Statut :</b> {selectedLivrable.statut}</p>
+                <p className="text-gray-600 mb-4 dark:text-gray-400">💬 <b>Commentaires :</b> {selectedLivrable.commentaires?.join(", ") || "Aucun"}</p>
+                <p className="text-gray-600 mb-4 dark:text-gray-400">📄 <b>Contenu :</b> {selectedLivrable.contenu}</p>
+
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition dark:bg-blue-600 dark:hover:bg-blue-700"
+                  onClick={handleDownload}
+                >
+                  <Download size={18} />
+                  <span>Télécharger</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showUploadModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+              <div className="bg-white p-6 rounded-xl shadow-lg w-96 dark:bg-gray-800">
+                <UploadLivrable onCancel={closeUploadModal} onUpload={handleUpload} />
+              </div>
+            </div>
+          )}
+
+          {showDeleteConfirmation && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+              <div className="bg-white p-6 rounded-xl shadow-lg w-96 dark:bg-gray-800">
+                <h2 className="text-xl font-bold text-gray-800 mb-4 dark:text-white">Confirmer la suppression</h2>
+                <p className="text-gray-600 mb-6 dark:text-gray-400">Êtes-vous sûr de vouloir supprimer ce livrable ?</p>
+                <div className="flex justify-end gap-4">
+                  <button
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                    onClick={() => setShowDeleteConfirmation(false)}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition dark:bg-red-600 dark:hover:bg-red-700"
+                    onClick={confirmDelete}
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}                                                                                                 // app/livrables/upload.js
+"use client";
+import { useState } from "react";
+
+export default function UploadLivrable({ onCancel, onUpload }) {
+  const [file, setFile] = useState(null);
+  const [titre, setTitre] = useState("");
+  const [type, setType] = useState("");
+  const [description, setDescription] = useState("");
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!titre || !type || !file || !description) {
+      alert("Veuillez remplir tous les champs obligatoires.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('titre', titre);
+    formData.append('contenu', description);
+    formData.append('version', 1);
+    formData.append('statut', 'Brouillon');
+    formData.append('dateSoumission', new Date().toISOString().split('T')[0]);
+    formData.append('type', type);
+    formData.append('idPfe', 1);
+    formData.append('idEtudiant', "student123");
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/livrables', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit livrable');
+      }
+
+      const data = await response.json();
+      alert('Livrable submitted successfully!');
+      onUpload({
+        id: data.id,
+        titre,
+        contenu: description,
+        version: 1,
+        statut: 'Brouillon',
+        dateSoumission: new Date().toISOString().split('T')[0],
+        type,
+        idPfe: 1,
+        idEtudiant: "student123",
+      });
+      setTitre("");
+      setType("");
+      setFile(null);
+      setDescription("");
+      onCancel();
+    } catch (error) {
+      console.error('Error submitting livrable:', error);
+      alert('Failed to submit livrable');
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">📤 Soumettre un livrable</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-[#171717] font-bold">📝 Titre :</label>
+          <input
+            type="text"
+            placeholder="Entrez le titre du livrable"
+            value={titre}
+            onChange={(e) => setTitre(e.target.value)}
+            className="border border-[#ededed] p-2 w-full bg-white text-[#171717] rounded-lg focus:outline-none focus:border-[#171717]"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-[#171717] font-bold">📄 Type :</label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="border border-[#ededed] p-2 w-full bg-white text-[#171717] rounded-lg focus:outline-none focus:border-[#171717]"
+            required
+          >
+            <option value="" disabled>Sélectionnez un type</option>
+            <option value="Rapport">Rapport</option>
+            <option value="Présentation">Présentation</option>
+            <option value="Cahier des charges">Cahier des charges</option>
+            <option value="Documentation technique">Documentation technique</option>
+            <option value="Vidéo de démonstration">Vidéo de démonstration</option>
+            <option value="Article scientifique">Article scientifique</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-[#171717] font-bold">📂 Fichier :</label>
+          <input
+            type="file"
+            onChange={handleFileChange}
+            className="border border-[#ededed] p-2 w-full bg-white text-[#171717] rounded-lg focus:outline-none focus:border-[#171717]"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-[#171717] font-bold">📝 Description :</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="border border-[#ededed] p-2 w-full bg-white text-[#171717] rounded-lg focus:outline-none focus:border-[#171717]"
+            rows="3"
+            required
+          ></textarea>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-[#ededed] text-[#171717] px-4 py-2 rounded-lg hover:bg-[#ddd] transition-all"
+          >
+            Annuler
+          </button>
+          <button
+            type="submit"
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-all"
+          >
+            📤 Soumettre
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}                                                                                                                                              // backend/server.js
+const express = require('express');
+const bodyParser = require('body-parser');
+const mysql = require('mysql2');
+const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
+
+const app = express();
+const port = 5000;
+
+app.use(cors({
+  origin: 'http://localhost:3000', // Autoriser les requêtes du frontend
+  methods: ['GET', 'POST', 'DELETE'], // Méthodes autorisées
+  credentials: true, // Autoriser les cookies
+}));
+app.use(bodyParser.json());
+
+const upload = multer({ dest: 'uploads/' });
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: '',
+  database: 'gestionpfe'
+});
+
+db.connect((err) => {
+  if (err) {
+    console.error('Error connecting to the database:', err);
+    return;
+  }
+  console.log('Connected to the database');
+});
+
+app.get('/test', (req, res) => {
+  res.status(200).json({ message: 'Backend server is working!' });
+});
+
+app.get('/api/livrables', (req, res) => {
+  console.log('Fetching livrables...');
+  const query = 'SELECT * FROM Livrable';
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching livrables:', err);
+      return res.status(500).json({ error: 'Failed to fetch livrables' });
+    }
+    console.log('Livrables fetched successfully:', results);
+    res.status(200).json(results);
+  });
+});
+
+app.post('/api/livrables', upload.single('file'), (req, res) => {
+  const { titre, contenu, version, statut, dateSoumission, type, idPfe, idEtudiant } = req.body;
+  const file = req.file;
+
+  if (!titre || !contenu || !type || !file) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const query = 
+    INSERT INTO Livrable (titre, contenu, version, statut, dateSoumission, type, idPfe, idEtudiant, fichierUrl)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ;
+
+  const fichierUrl = file ? /uploads/${file.filename} : null;
+
+  db.query(query, [titre, contenu, version, statut, dateSoumission, type, idPfe, idEtudiant, fichierUrl], (err, results) => {
+    if (err) {
+      console.error('Error submitting livrable:', err);
+      return res.status(500).json({ error: 'Failed to submit livrable' });
+    }
+    res.status(201).json({ message: 'Livrable submitted successfully', id: results.insertId });
+  });
+});
+
+app.delete('/api/livrables/:id', (req, res) => {
+  const { id } = req.params;
+
+  const query = 'DELETE FROM Livrable WHERE id = ?';
+
+  db.query(query, [id], (err, results) => {
+    if (err) {
+      console.error('Error deleting livrable:', err);
+      return res.status(500).json({ error: 'Failed to delete livrable' });
+    }
+    res.status(200).json({ message: 'Livrable deleted successfully' });
+  });
+});
+
+app.listen(port, () => {
+  console.log(Server running on port ${port});
+}); coriger ces codes doit fonctionne bien i want data fo database afficher dans page livrables meme i refresh
