@@ -1,11 +1,14 @@
-//MON-PROJET/app/page.js
+// app/page.js
+"use client";
 import Dashboard from "./components/Dashboard";
 import Sidebar from './components/sidebar';
 import Navbar from './components/Navbar';
-import Link from 'next/link';
+import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from './contexts/AuthContext';
 
+const DashboardContent = () => {
+  const { user } = useAuth();
 
-export default function DashboardPage() {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -20,12 +23,28 @@ export default function DashboardPage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-4xl font-bold">GESTION DE PFE</h2>
+            {user && (
+              <div className="bg-[#b17a56]/10 p-2 rounded-lg">
+                <span className="text-[#b17a56] font-medium">
+                  Bienvenue, {user.prenom} {user.nom}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Appel du composant Dashboard */}
-          <Dashboard />  {/* Ceci est la partie ajoutée */}
+          <Dashboard />
         </div>
       </div>
     </div>
+  );
+};
+
+export default function DashboardPage() {
+  // Cette page est accessible à tous les rôles une fois connectés
+  return (
+    <ProtectedRoute allowedRoles={['etudiant', 'tuteur', 'encadrant', 'responsableFiliere']}>
+      <DashboardContent />
+    </ProtectedRoute>
   );
 }

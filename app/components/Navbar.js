@@ -1,10 +1,11 @@
-// MON-PROJET/app/components/Navbar.js
+// app/components/Navbar.js
 "use client";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { FaBell, FaEnvelope, FaUserCircle, FaUser, FaCog, FaPowerOff } from "react-icons/fa";
 import { Badge, IconButton, Tooltip, Menu, MenuItem } from "@mui/material";
 import { Notifications as NotificationsIcon, AccountCircle, Mail as MailIcon } from "@mui/icons-material";
+import { useAuth } from "../contexts/AuthContext";
 
 const Navbar = () => {
   const [notifCount, setNotifCount] = useState(0);
@@ -22,19 +23,24 @@ const Navbar = () => {
     { id: 2, from: "Admin", text: "Votre compte a été mis à jour" },
   ]);
 
+  // Utiliser le hook d'authentification
+  const { user, logout } = useAuth();
+
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const user = JSON.parse(localStorage.getItem('user'));
+        // S'assurer que l'utilisateur est connecté
         if (!user) return;
   
         let endpoint = '';
         if (user.role === 'etudiant') {
-          endpoint = `notifications/etudiant/${user.idEtudiant}`;
+          endpoint = `notifications/etudiant/${user.id}`;
         } else if (user.role === 'tuteur') {
-          endpoint = `notifications/tuteur/${user.idTuteur}`;
+          endpoint = `notifications/tuteur/${user.id}`;
         } else if (user.role === 'encadrant') {
-          endpoint = `notifications/encadrant/${user.idEncadrant}`;
+          endpoint = `notifications/encadrant/${user.id}`;
+        } else if (user.role === 'responsableFiliere') {
+          endpoint = `notifications/responsable/${user.id}`;
         }
   
         const response = await fetch(`http://localhost:5000/api/${endpoint}`);
@@ -47,7 +53,7 @@ const Navbar = () => {
     };
   
     fetchNotifications();
-  }, []);
+  }, [user]);
 
   const handleClickNotif = (event) => setAnchorElNotif(event.currentTarget);
   const handleCloseNotif = () => setAnchorElNotif(null);
@@ -60,10 +66,8 @@ const Navbar = () => {
 
   // Handle logout
   const handleLogout = () => {
-    // Clear user session or token
-    localStorage.removeItem("token"); // Example: Clear token from localStorage
-    // Redirect to login page
-    window.location.href = "/login"; // Redirect to login page
+    logout();
+    setAnchorElProfile(null);
   };
 
   return (
@@ -71,6 +75,18 @@ const Navbar = () => {
       <h1 className="text-lg font-bold text-white"></h1>
 
       <div className="flex items-center gap-5">
+        {/* User info - afficher le nom si disponible */}
+        {user && (
+          <div className="hidden md:block text-white">
+            <span className="font-medium">{user.prenom} {user.nom}</span>
+            <span className="text-xs ml-2 bg-white/20 px-2 py-1 rounded-full">
+              {user.role === 'etudiant' ? 'Étudiant' : 
+               user.role === 'encadrant' ? 'Encadrant' : 
+               user.role === 'tuteur' ? 'Tuteur' : 'Responsable'}
+            </span>
+          </div>
+        )}
+
         {/* Notifications */}
         <div className="relative">
           <Tooltip title="Notifications">

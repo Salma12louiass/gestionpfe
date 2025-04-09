@@ -1,9 +1,11 @@
-// MON-PROJET/app/livrables/upload.js
+// app/livrables/upload.js
 "use client";
 import { useState } from "react";
 import { Upload, X } from "lucide-react";
+import { useAuth } from '../contexts/AuthContext';
 
 export default function UploadLivrable({ onCancel, onUpload }) {
+  const { user } = useAuth();
   const [file, setFile] = useState(null);
   const [titre, setTitre] = useState("");
   const [type, setType] = useState("");
@@ -50,6 +52,12 @@ export default function UploadLivrable({ onCancel, onUpload }) {
       return;
     }
 
+    // Vérifier que l'utilisateur est connecté et est un étudiant
+    if (!user || user.role !== 'etudiant') {
+      alert("Vous devez être connecté en tant qu'étudiant pour soumettre un livrable.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const formData = new FormData();
@@ -60,7 +68,7 @@ export default function UploadLivrable({ onCancel, onUpload }) {
     formData.append("dateSoumission", new Date().toISOString().split("T")[0]);
     formData.append("type", type);
     formData.append("idPfe", 1); // Valeur par défaut - à ajuster selon vos besoins
-    formData.append("idEtudiant", "etudiant124"); // Valeur par défaut - à ajuster selon vos besoins
+    formData.append("idEtudiant", user.id); // Utiliser l'ID de l'étudiant connecté
     formData.append("file", file);
 
     try {
@@ -86,7 +94,7 @@ export default function UploadLivrable({ onCancel, onUpload }) {
         dateSoumission: new Date().toISOString().split("T")[0],
         type: type,
         idPfe: 1,
-        idEtudiant: "etudiant124",
+        idEtudiant: user.id,
         fichierUrl: data.fichierUrl || `/uploads/${file.name}`, // Fallback si l'API ne renvoie pas d'URL
       };
       

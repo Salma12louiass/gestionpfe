@@ -2,6 +2,7 @@
 "use client";
 import { useEffect } from "react";
 import "./globals.css";
+import { AuthProvider } from "./contexts/AuthContext";
 
 export default function RootLayout({ children }) {
   // Charger le thème au démarrage de l'application
@@ -14,7 +15,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="fr">
       <body className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

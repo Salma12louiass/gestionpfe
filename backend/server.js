@@ -1548,3 +1548,155 @@ app.listen(port, () => {
   console.log(`- GET http://localhost:${port}/api/dashboard/deliverable-status`);
   console.log(`- POST http://localhost:${port}/api/test-data (for testing)`);
 });
+
+// Ajoutez ce code dans votre fichier server.js
+
+// Route d'authentification
+app.post("/api/auth/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email et mot de passe requis" });
+  }
+
+  // Rechercher l'utilisateur par email
+  const query = "SELECT * FROM Login WHERE email = ?";
+  db.query(query, [email], (err, results) => {
+    if (err) {
+      console.error("Erreur de connexion à la base de données:", err);
+      return res.status(500).json({ error: "Erreur serveur" });
+    }
+
+    if (results.length === 0) {
+      return res.status(401).json({ error: "Email ou mot de passe incorrect" });
+    }
+
+    const user = results[0];
+
+    // Vérifier le mot de passe (en prod, utilisez bcrypt.compare)
+    // Dans votre base de données, les mots de passe ne semblent pas être hachés
+    // Idéalement, ils devraient être stockés hachés avec bcrypt
+    if (password !== user.password) {
+      return res.status(401).json({ error: "Email ou mot de passe incorrect" });
+    }
+
+    // Récupérer les informations de l'utilisateur selon son rôle
+    let userInfoQuery;
+    switch (user.role) {
+      case 'etudiant':
+        userInfoQuery = "SELECT * FROM Etudiant WHERE idEtudiant = ?";
+        break;
+      case 'tuteur':
+        userInfoQuery = "SELECT * FROM Tuteur WHERE idTuteur = ?";
+        break;
+      case 'encadrant':
+        userInfoQuery = "SELECT * FROM Encadrant WHERE idEncadrant = ?";
+        break;
+      case 'responsableFiliere':
+        userInfoQuery = "SELECT * FROM ResponsableFiliere WHERE idResponsableFiliere = ?";
+        break;
+      default:
+        return res.status(400).json({ error: "Type d'utilisateur non reconnu" });
+    }
+
+    db.query(userInfoQuery, [user.user_id], (err, userResults) => {
+      if (err) {
+        console.error("Erreur lors de la récupération des informations utilisateur:", err);
+        return res.status(500).json({ error: "Erreur serveur" });
+      }
+
+      if (userResults.length === 0) {
+        return res.status(404).json({ error: "Utilisateur non trouvé" });
+      }
+
+      const userInfo = userResults[0];
+
+      // Construire l'objet utilisateur à retourner
+      const userResponse = {
+        id: user.user_id,
+        email: userInfo.email,
+        role: user.role,
+        nom: userInfo.nom,
+        prenom: userInfo.prenom
+      };
+
+      // En cas de succès, renvoyer les informations de l'utilisateur
+      res.json({ user: userResponse });
+    });
+  });
+});
+
+// Route d'inscription (optionnelle)
+app.post("/api/auth/register", (req, res) => {
+  // À implémenter si nécessaire pour créer de nouveaux utilisateurs
+  // Cela dépend des besoins de votre application
+});
+
+// Ajoutez ce code dans votre fichier server.js
+
+// Route pour récupérer un utilisateur par ID et rôle
+app.get("/api/users/:id", (req, res) => {
+  const { id } = req.params;
+  const { role } = req.query;
+
+  if (!id || !role) {
+    return res.status(400).json({ error: "ID et rôle requis" });
+  }
+
+  let query;
+  switch (role) {
+    case 'etudiant':
+      query = "SELECT idEtudiant as id, nom, prenom, email, annee, classe, filiere, role FROM Etudiant WHERE idEtudiant = ?";
+      break;
+    case 'tuteur':
+      query = "SELECT idTuteur as id, nom, prenom, email, annee, classe, filiere, role FROM Tuteur WHERE idTuteur = ?";
+      break;
+    case 'encadrant':
+      query = "SELECT idEncadrant as id, nom, prenom, email, annee, role FROM Encadrant WHERE idEncadrant = ?";
+      break;
+    case 'responsableFiliere':
+      query = "SELECT idResponsableFiliere as id, nom, prenom, email, departement, annee, role FROM ResponsableFiliere WHERE idResponsableFiliere = ?";
+      break;
+    default:
+      return res.status(400).json({ error: "Rôle non reconnu" });
+  }
+
+  db.query(query, [id], (err, results) => {
+    if (err) {
+      console.error("Erreur base de données:", err);
+      return res.status(500).json({ error: "Erreur serveur" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Utilisateur non trouvé" });
+    }
+
+    const user = results[0];
+    
+    // Ne pas renvoyer le mot de passe
+    delete user.motDePasse;
+    
+    res.json(user);
+  });
+});
+
+// Route pour les livrables de l'étudiant connecté
+app.get("/api/livrables/etudiant/:idEtudiant", (req, res) => {
+  const { idEtudiant } = req.params;
+
+  const query = `
+    SELECT idLivrable, titre, contenu, version, statut, 
+           DATE_FORMAT(dateSoumission, '%Y-%m-%d') AS dateSoumission, 
+           type, idPfe, idEtudiant, fichierUrl, commentaires 
+    FROM Livrable
+    WHERE idEtudiant = ?;
+  `;
+
+  db.query(query, [idEtudiant], (err, results) => {
+    if (err) {
+      console.error("Erreur lors de la récupération des livrables:", err);
+      return res.status(500).json({ error: "Échec de la récupération des livrables" });
+    }
+    res.status(200).json(results);
+  });
+});
