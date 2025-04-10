@@ -1584,40 +1584,44 @@ app.put("/api/reunions/:id", (req, res) => {
     WHERE idReunion = ?
   `;
 
-      db.query(updateQuery, [sujet, date, heure, agenda, id], (err) => {
-    if (err) {
-      console.error("Erreur lors de la mise à jour de la réunion:", err);
-      return res.status(500).json({ error: "Erreur serveur" });
-    }
-
-    // Supprimer les anciens participants
-    const deleteParticipantsQuery = "DELETE FROM ReunionParticipant WHERE idReunion = ?";
-    db.query(deleteParticipantsQuery, [id], (err) => {
+    // À la fin du fichier server.js
+    db.query(updateQuery, [sujet, date, heure, agenda, id], (err) => {
       if (err) {
-        console.error("Erreur lors de la suppression des participants:", err);
+        console.error("Erreur lors de la mise à jour de la réunion:", err);
         return res.status(500).json({ error: "Erreur serveur" });
       }
 
-      // Ajouter les nouveaux participants
-      if (participants && participants.length > 0) {
-        const insertParticipantsQuery = `
-          INSERT INTO ReunionParticipant (idReunion, participantType, participantId)
-          VALUES ?
-        `;
-        const participantsValues = participants.map((p) => {
-          const [type, idParticipant] = p.split(":");
-          return [id, type, idParticipant]; // Utiliser l'idReunion correct
-        });
+      // Supprimer les anciens participants
+      const deleteParticipantsQuery = "DELETE FROM ReunionParticipant WHERE idReunion = ?";
+      db.query(deleteParticipantsQuery, [id], (err) => {
+        if (err) {
+          console.error("Erreur lors de la suppression des participants:", err);
+          return res.status(500).json({ error: "Erreur serveur" });
+        }
 
-        db.query(insertParticipantsQuery, [participantsValues], (err) => {
-          if (err) {
-            console.error("Erreur lors de l'ajout des participants:", err);
-            return res.status(500).json({ error: "Erreur serveur" });
-          }
+        // Ajouter les nouveaux participants
+        if (participants && participants.length > 0) {
+          const insertParticipantsQuery = `
+            INSERT INTO ReunionParticipant (idReunion, participantType, participantId)
+            VALUES ?
+          `;
+          const participantsValues = participants.map((p) => {
+            const [type, idParticipant] = p.split(":");
+            return [id, type, idParticipant]; // Utiliser l'idReunion correct
+          });
 
+          db.query(insertParticipantsQuery, [participantsValues], (err) => {
+            if (err) {
+              console.error("Erreur lors de l'ajout des participants:", err);
+              return res.status(500).json({ error: "Erreur serveur" });
+            }
+
+            res.json({ message: "Réunion mise à jour avec succès" });
+          });
+        } else {
           res.json({ message: "Réunion mise à jour avec succès" });
-        });
-      } else {
-        res.json({ message: "Réunion mise à jour avec succès" });
-      }
+        }
+      });
     });
+  }); // Fermeture de la route app.put("/api/reunions/:id")
+// });  // Fermeture du module
