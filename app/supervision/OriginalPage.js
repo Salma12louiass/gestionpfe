@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, Search, Trash, Edit, ChevronDown } from "lucide-react";
 import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function OriginalSupervisionPage() {
   const [suivis, setSuivis] = useState([]);
