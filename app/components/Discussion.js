@@ -1123,7 +1123,7 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
       {/* Message input */}
       <div className={`p-3 border-t ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         {showEmojiPicker && (
-          <div className="absolute bottom-16 left-2 z-10 emoji-picker">
+          <div className="absolute bottom-16 left-2 z-[1000] emoji-picker">
             <EmojiPicker 
               onEmojiClick={handleEmojiClick}
               width={300}
