@@ -117,4 +117,36 @@ export default function OriginalDiscussionsEtudiantPage() {
                                     : 'bg-gray-100 text-gray-800'
                               }`}
                             >
-                              {p.prenom} {p.nom} {p.isCreator && '(Créateur
+
+                    {p.prenom} {p.nom} {p.isCreator && '(Créateur)'}
+                    </span>
+                    ))}
+                    {discussion.participants.length > 3 && (
+                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                    +{discussion.participants.length - 3}
+                    </span>
+                    )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                    Créée le {new Date(discussion.dateCreation).toLocaleDateString()}
+                    </p>
+                    </div>
+                    ))}
+                    </div>
+                    ) : (
+                    <div className="text-center py-12">
+                    <FaComments className="mx-auto text-5xl text-gray-300 mb-4" />
+                    <h3 className="text-lg font-medium">Aucune discussion disponible</h3>
+                    <p className="text-gray-500 mt-2">
+                    Vous n'êtes actuellement membre d'aucune discussion
+                    </p>
+                    </div>
+                    )}
+                    </div>
+                </div>
+                )}
+            </main>
+        </div>
+    </div>
+);
+}
