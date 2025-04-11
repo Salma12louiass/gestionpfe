@@ -17,7 +17,7 @@ export default function OriginalDiscussionsEtudiantPage() {
   const currentUser = user || { 
     id: "ET123", 
     type: "etudiant", 
-    role: "etudiant", // Ajouter cette ligne pour définir le rôle de l'utilisateur
+    role: "etudiant", // S'assurer que les deux propriétés sont définies
     nom: "Dupont", 
     prenom: "Jean", 
     email: "jean.dupont@email.com" 

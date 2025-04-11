@@ -257,6 +257,8 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
     }
   };
 
+
+  
   const handleSendMessage = async () => {
     if (!newMessage.trim() && selectedFiles.length === 0) {
       alert("Veuillez saisir un message ou ajouter un fichier");
@@ -266,13 +268,29 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
     try {
       setIsLoading(prev => ({ ...prev, sending: true }));
   
-      // Vérification des informations utilisateur avec gestion améliorée
+      // Assurer la compatibilité entre type et role
       let userId = currentUser?.id;
-      let userType = currentUser?.type || currentUser?.role; // Utiliser type ou role si disponible
+      let userType = currentUser?.type || currentUser?.role;
       
-      if (!userId || !userType) {
-        console.error("Données utilisateur:", currentUser);
-        throw new Error("Informations utilisateur incomplètes");
+      // Vérification plus détaillée pour faciliter le débogage
+      if (!userId) {
+        console.error("ID utilisateur manquant:", currentUser);
+        throw new Error("ID utilisateur manquant");
+      }
+      
+      if (!userType) {
+        console.error("Type/rôle utilisateur manquant:", currentUser);
+        throw new Error("Type utilisateur manquant");
+      }
+      
+      // Normaliser le type pour la cohérence
+      userType = userType.toLowerCase();
+      
+      // Vérifier que le type est valide
+      const validTypes = ['etudiant', 'encadrant', 'tuteur', 'responsable'];
+      if (!validTypes.includes(userType)) {
+        console.error("Type utilisateur invalide:", userType);
+        throw new Error(`Type utilisateur invalide: ${userType}`);
       }
   
       let messageContent = newMessage.trim();
@@ -284,7 +302,7 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
       const messageData = {
         content: messageContent || "(Message avec pièce jointe)",
         idAuteur: userId,
-        typeAuteur: userType.toLowerCase(),
+        typeAuteur: userType,
         replyTo: replyingTo?.idMessage || null
       };
   
@@ -331,6 +349,7 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
       setIsLoading(prev => ({ ...prev, sending: false }));
     }
   };
+
 
   //-----------------------------------------------------------
 

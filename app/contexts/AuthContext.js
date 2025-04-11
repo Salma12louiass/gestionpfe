@@ -43,7 +43,19 @@ export const AuthProvider = ({ children }) => {
         }
         
         const data = await response.json();
-        setUser(data.user || JSON.parse(userData));
+        
+        // Normalisation des données utilisateur
+        let userInfo = data.user || JSON.parse(userData);
+        
+        // S'assurer que l'utilisateur a à la fois type et role
+        if (!userInfo.type && userInfo.role) {
+          userInfo.type = userInfo.role;
+        }
+        if (!userInfo.role && userInfo.type) {
+          userInfo.role = userInfo.type;
+        }
+        
+        setUser(userInfo);
       } catch (error) {
         console.error("Erreur lors de la vérification de l'authentification:", error);
         // En cas d'erreur, on considère que l'utilisateur n'est pas connecté
@@ -74,6 +86,18 @@ export const AuthProvider = ({ children }) => {
 
       if (!response.ok) {
         throw new Error(data.error || 'Erreur lors de la connexion');
+      }
+
+      // Normaliser les données utilisateur avant de les stocker
+      if (data.user) {
+        // Si le serveur n'a pas fourni le type, utilisez le rôle comme type
+        if (!data.user.type && data.user.role) {
+          data.user.type = data.user.role;
+        }
+        // Si le serveur n'a pas fourni le rôle, utilisez le type comme rôle
+        if (!data.user.role && data.user.type) {
+          data.user.role = data.user.type;
+        }
       }
 
       // Stocker les informations de l'utilisateur dans le localStorage
