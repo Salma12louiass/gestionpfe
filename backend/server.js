@@ -59,7 +59,7 @@ const db = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "", // Ajoutez votre mot de passe MySQL ici si nécessaire
-  database: "gestionpfe2",
+  database: "gestionpfe",
 });
 
 db.connect((err) => {
