@@ -262,29 +262,34 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
       alert("Veuillez saisir un message ou ajouter un fichier");
       return;
     }
-
+  
     try {
       setIsLoading(prev => ({ ...prev, sending: true }));
-
-      if (!currentUser?.id || !currentUser?.type) {
+  
+      // Vérification des informations utilisateur avec gestion améliorée
+      let userId = currentUser?.id;
+      let userType = currentUser?.type || currentUser?.role; // Utiliser type ou role si disponible
+      
+      if (!userId || !userType) {
+        console.error("Données utilisateur:", currentUser);
         throw new Error("Informations utilisateur incomplètes");
       }
-
+  
       let messageContent = newMessage.trim();
       
       if (replyingTo) {
         messageContent = `>> @${replyingTo.prenom}: ${replyingTo.content}\n${messageContent}`;
       }
-
+  
       const messageData = {
         content: messageContent || "(Message avec pièce jointe)",
-        idAuteur: currentUser.id,
-        typeAuteur: currentUser.type.toLowerCase(),
+        idAuteur: userId,
+        typeAuteur: userType.toLowerCase(),
         replyTo: replyingTo?.idMessage || null
       };
-
+  
       console.log("Envoi du message avec données:", messageData);
-
+  
       const messageResponse = await fetch(
         `http://localhost:5000/api/discussions/${discussion.idDiscussion}/messages`,
         {
@@ -293,12 +298,12 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
           body: JSON.stringify(messageData)
         }
       );
-
+  
       if (!messageResponse.ok) {
         const errorData = await messageResponse.json();
         throw new Error(errorData.error || 'Échec de l\'envoi du message');
       }
-
+  
       const newMsg = await messageResponse.json();
       
       if (selectedFiles.length > 0) {
@@ -313,7 +318,7 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
           throw uploadError;
         }
       }
-
+  
       setMessages(prev => [...prev, newMsg]);
       setNewMessage("");
       setReplyingTo(null);
@@ -326,6 +331,9 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
       setIsLoading(prev => ({ ...prev, sending: false }));
     }
   };
+
+  //-----------------------------------------------------------
+
 
   const handleDeleteMessage = async (idMessage) => {
     setShowDeleteConfirm({ show: true, messageId: idMessage });
