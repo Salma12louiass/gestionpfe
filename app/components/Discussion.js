@@ -1,4 +1,3 @@
-//MON-PROJET/app/components/Discussion.js
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { 
@@ -26,7 +25,6 @@ const EmojiPicker = dynamic(
 );
 
 const Discussion = ({ discussion, currentUser, onBack }) => {
-  // States
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState({
@@ -59,7 +57,6 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
   const [theme, setTheme] = useState("light");
   const [mediaType, setMediaType] = useState("all");
 
-  // Refs
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -265,35 +262,43 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
       alert("Veuillez saisir un message ou ajouter un fichier");
       return;
     }
-  
+
     try {
       setIsLoading(prev => ({ ...prev, sending: true }));
-  
+
+      if (!currentUser?.id || !currentUser?.type) {
+        throw new Error("Informations utilisateur incomplètes");
+      }
+
       let messageContent = newMessage.trim();
       
       if (replyingTo) {
         messageContent = `>> @${replyingTo.prenom}: ${replyingTo.content}\n${messageContent}`;
       }
-  
+
+      const messageData = {
+        content: messageContent || "(Message avec pièce jointe)",
+        idAuteur: currentUser.id,
+        typeAuteur: currentUser.type.toLowerCase(),
+        replyTo: replyingTo?.idMessage || null
+      };
+
+      console.log("Envoi du message avec données:", messageData);
+
       const messageResponse = await fetch(
         `http://localhost:5000/api/discussions/${discussion.idDiscussion}/messages`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: messageContent || "(Message avec pièce jointe)",
-            idAuteur: currentUser.id,
-            typeAuteur: currentUser.type,
-            replyTo: replyingTo?.idMessage || null
-          })
+          body: JSON.stringify(messageData)
         }
       );
-  
+
       if (!messageResponse.ok) {
         const errorData = await messageResponse.json();
         throw new Error(errorData.error || 'Échec de l\'envoi du message');
       }
-  
+
       const newMsg = await messageResponse.json();
       
       if (selectedFiles.length > 0) {
@@ -308,7 +313,7 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
           throw uploadError;
         }
       }
-  
+
       setMessages(prev => [...prev, newMsg]);
       setNewMessage("");
       setReplyingTo(null);
@@ -1107,7 +1112,7 @@ const Discussion = ({ discussion, currentUser, onBack }) => {
             </div>
             <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
               {replyingTo.content.length > 50 
-                ? `${repliedTo.content.substring(0, 50)}...` 
+                ? `${replyingTo.content.substring(0, 50)}...` 
                 : replyingTo.content}
             </div>
           </div>

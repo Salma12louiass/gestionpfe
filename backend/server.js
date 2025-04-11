@@ -59,7 +59,7 @@ const db = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "", // Ajoutez votre mot de passe MySQL ici si nécessaire
-  database: "gestionpfe",
+  database: "gestionpfe2",
 });
 
 db.connect((err) => {
@@ -681,95 +681,162 @@ app.post('/api/discussions/:id/messages', (req, res) => {
   const { id } = req.params;
   const { content, idAuteur, typeAuteur, replyTo } = req.body;
 
+  console.log("Données reçues:", { 
+    discussionId: id,
+    content: content?.length,
+    idAuteur,
+    typeAuteur, 
+    replyTo 
+  });
+
+  // Validation
   if (!content && !req.files) {
     return res.status(400).json({ error: 'Message ou fichier requis' });
   }
 
+  if (!idAuteur || !typeAuteur) {
+    return res.status(400).json({ 
+      error: 'Auteur du message non spécifié',
+      received: { idAuteur, typeAuteur }
+    });
+  }
+
+  // Mapping des types d'auteurs
   const fieldMap = {
     etudiant: 'idEtudiant',
     tuteur: 'idTuteur',
     encadrant: 'idEncadrant',
     responsable: 'idResponsableFiliere'
   };
-  const idField = fieldMap[typeAuteur];
 
+  const normalizedType = typeAuteur.toLowerCase();
+  const idField = fieldMap[normalizedType];
+  
+  if (!idField) {
+    return res.status(400).json({ 
+      error: 'Type d\'auteur non reconnu',
+      validTypes: Object.keys(fieldMap),
+      receivedType: typeAuteur
+    });
+  }
+
+  // Construction de la requête SQL
   const query = `
     INSERT INTO Message (contenu, dateEnvoi, idDiscussion, ${idField}, idMessageRepondu)
     VALUES (?, NOW(), ?, ?, ?)
   `;
 
-  db.query(query, [content || '', id, idAuteur, replyTo || null], (err, result) => {
+  const params = [
+    content || '', 
+    id, 
+    idAuteur, 
+    replyTo || null
+  ];
+
+  console.log("Exécution de la requête:", query, params);
+
+  db.query(query, params, (err, result) => {
     if (err) {
-      console.error(err);
-      return res.status(500).json({ error: 'Erreur création message' });
+      console.error('Erreur SQL:', err);
+      return res.status(500).json({ 
+        error: 'Erreur création message',
+        sqlError: err.message,
+        sqlQuery: query,
+        sqlParams: params
+      });
     }
 
     const messageId = result.insertId;
-    
-    // Si des fichiers sont joints, les traiter
-    if (req.files && req.files.length > 0) {
-      const fileQueries = req.files.map(file => {
-        return new Promise((resolve, reject) => {
-          const fileQuery = `
-            INSERT INTO FichierJoint (nomFichier, cheminFichier, typeMIME, taille, idMessage)
-            VALUES (?, ?, ?, ?, ?)
-          `;
-          db.query(fileQuery, [
-            file.originalname,
-            file.filename,
-            file.mimetype,
-            file.size,
-            messageId
-          ], (err, fileResult) => {
-            if (err) reject(err);
-            else resolve(fileResult);
-          });
+
+    // Récupération du message créé
+    const getQuery = `
+      SELECT m.idMessage, m.contenu as content, m.dateEnvoi, m.aDesFichiers,
+             ? as idAuteur, ? as typeAuteur,
+             COALESCE(e.nom, t.nom, en.nom, r.nom) as nom,
+             COALESCE(e.prenom, t.prenom, en.prenom, r.prenom) as prenom,
+             m.idMessageRepondu
+      FROM Message m
+      LEFT JOIN Etudiant e ON m.idEtudiant = e.idEtudiant
+      LEFT JOIN Tuteur t ON m.idTuteur = t.idTuteur
+      LEFT JOIN Encadrant en ON m.idEncadrant = en.idEncadrant
+      LEFT JOIN ResponsableFiliere r ON m.idResponsableFiliere = r.idResponsableFiliere
+      WHERE m.idMessage = ?
+    `;
+
+    db.query(getQuery, [idAuteur, normalizedType, messageId], (err, [message]) => {
+      if (err) {
+        console.error('Erreur récupération message:', err);
+        return res.status(500).json({ 
+          error: 'Message créé mais erreur récupération',
+          messageId
         });
-      });
-
-      Promise.all(fileQueries)
-        .then(() => {
-          // Mettre à jour le message pour indiquer qu'il a des fichiers
-          db.query(
-            'UPDATE Message SET aDesFichiers = TRUE WHERE idMessage = ?',
-            [messageId],
-            (err) => {
-              if (err) console.error('Erreur mise à jour message:', err);
-              fetchMessageWithAttachments();
-            }
-          );
-        })
-        .catch(err => {
-          console.error('Erreur enregistrement fichiers:', err);
-          fetchMessageWithAttachments();
-        });
-    } else {
-      fetchMessageWithAttachments();
-    }
-
-    function fetchMessageWithAttachments() {
-      const getQuery = `
-        SELECT m.idMessage, m.contenu as content, m.dateEnvoi, m.aDesFichiers,
-               ? as idAuteur, ? as typeAuteur,
-               COALESCE(e.nom, t.nom, en.nom, r.nom) as nom,
-               COALESCE(e.prenom, t.prenom, en.prenom, r.prenom) as prenom
-        FROM Message m
-        LEFT JOIN Etudiant e ON m.idEtudiant = e.idEtudiant
-        LEFT JOIN Tuteur t ON m.idTuteur = t.idTuteur
-        LEFT JOIN Encadrant en ON m.idEncadrant = en.idEncadrant
-        LEFT JOIN ResponsableFiliere r ON m.idResponsableFiliere = r.idResponsableFiliere
-        WHERE m.idMessage = ?
-      `;
-
-      db.query(getQuery, [idAuteur, typeAuteur, messageId], (err, [message]) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({ error: 'Erreur récupération message' });
-        }
-        res.status(201).json(message);
-      });
-    }
+      }
+      
+      res.status(201).json(message);
+    });
   });
+});
+
+// Route pour uploader des fichiers
+app.post('/api/messages/:id/upload', upload.array('file'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'Aucun fichier uploadé' });
+    }
+
+    const fileQueries = req.files.map(file => {
+      return new Promise((resolve, reject) => {
+        const query = `
+          INSERT INTO FichierJoint (nomFichier, cheminFichier, typeMIME, taille, idMessage)
+          VALUES (?, ?, ?, ?, ?)
+        `;
+        db.query(query, [
+          file.originalname,
+          file.filename,
+          file.mimetype,
+          file.size,
+          id
+        ], (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        });
+      });
+    });
+
+    const results = await Promise.all(fileQueries);
+    
+    // Mettre à jour le flag aDesFichiers
+    db.query(
+      'UPDATE Message SET aDesFichiers = TRUE WHERE idMessage = ?',
+      [id],
+      (err) => {
+        if (err) console.error('Erreur mise à jour message:', err);
+      }
+    );
+
+    const uploadedFiles = results.map((result, index) => ({
+      idFichier: result.insertId,
+      nomFichier: req.files[index].originalname,
+      cheminFichier: req.files[index].filename,
+      typeMIME: req.files[index].mimetype,
+      taille: req.files[index].size
+    }));
+
+    res.status(201).json(uploadedFiles);
+  } catch (error) {
+    console.error(error);
+    
+    // Nettoyer les fichiers uploadés en cas d'erreur
+    if (req.files) {
+      req.files.forEach(file => {
+        fs.unlinkSync(path.join(uploadDir, file.filename));
+      });
+    }
+    
+    res.status(500).json({ error: 'Échec de l\'upload des fichiers' });
+  }
 });
 
 // =============================================

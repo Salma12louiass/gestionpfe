@@ -106,10 +106,10 @@ const Navbar = () => {
             }}
           >
             {notifications.length === 0 ? (
-              <MenuItem className="hover:bg-[#a06d4b]">Aucune notification</MenuItem>
+              <MenuItem key="no-notifications" className="hover:bg-[#a06d4b]">Aucune notification</MenuItem>
             ) : (
               notifications.map((notif) => (
-                <MenuItem key={notif.id} onClick={handleCloseNotif} className="hover:bg-[#a06d4b]">
+                <MenuItem key={`notif-${notif.id}`} onClick={handleCloseNotif} className="hover:bg-[#a06d4b]">
                   <strong>{notif.title}</strong> <br />
                   {notif.description} <br />
                   <small>{notif.date}</small>
@@ -122,8 +122,8 @@ const Navbar = () => {
         {/* Messages */}
         <div className="relative">
           <Tooltip title="Messages">
-            <Link href="/discussions">
-              <IconButton color="inherit">
+            <Link href="/discussions" passHref legacyBehavior>
+              <IconButton color="inherit" component="a">
                 <Badge badgeContent={msgCount} color="primary">
                   <MailIcon className="text-white cursor-pointer text-xl hover:text-[#d1a689] transition" />
                 </Badge>
@@ -140,10 +140,10 @@ const Navbar = () => {
             }}
           >
             {messages.length === 0 ? (
-              <MenuItem className="hover:bg-[#a06d4b]">Aucun message</MenuItem>
+              <MenuItem key="no-messages" className="hover:bg-[#a06d4b]">Aucun message</MenuItem>
             ) : (
               messages.map((msg) => (
-                <MenuItem key={msg.id} onClick={handleCloseMessages} className="hover:bg-[#a06d4b]">
+                <MenuItem key={`msg-${msg.id}`} onClick={handleCloseMessages} className="hover:bg-[#a06d4b]">
                   <strong>{msg.from}:</strong> {msg.text}
                 </MenuItem>
               ))
@@ -167,17 +167,17 @@ const Navbar = () => {
               className: "bg-[#b17a56] text-white",
             }}
           >
-            <MenuItem onClick={handleCloseProfile} className="hover:bg-[#a06d4b]">
+            <MenuItem key="profile" onClick={handleCloseProfile} className="hover:bg-[#a06d4b]">
               <Link href="/profil" className="flex items-center gap-2">
                 <FaUser /> Mon Profil
               </Link>
             </MenuItem>
-            <MenuItem onClick={handleCloseProfile} className="hover:bg-[#a06d4b]">
+            <MenuItem key="settings" onClick={handleCloseProfile} className="hover:bg-[#a06d4b]">
               <Link href="/parametres" className="flex items-center gap-2">
                 <FaCog /> Paramètres
               </Link>
             </MenuItem>
-            <MenuItem onClick={handleLogout} className="flex items-center gap-2 hover:bg-[#a06d4b]">
+            <MenuItem key="logout" onClick={handleLogout} className="flex items-center gap-2 hover:bg-[#a06d4b]">
               <FaPowerOff /> Déconnexion
             </MenuItem>
           </Menu>
