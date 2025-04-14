@@ -221,10 +221,7 @@ INSERT INTO `livrable` (`idLivrable`, `titre`, `contenu`, `version`, `statut`, `
 	(108, 'test', 'test', 1, 'Validé', '2025-04-08', 'Documentation technique', 1, 'etudiant124', '/uploads/1744125553155-mes parties PFE.pdf', '["tres biien"]', NULL, NULL),
 	(109, 'yfu', 'kvkbj', 1, 'Soumis', '2025-04-08', 'Rapport', 1, 'etudiant124', '/uploads/1744136811536-chapitre-4Agrima.pdf', NULL, NULL, NULL),
 	(110, 'kjvkj', 'jbjnj', 1, 'Soumis', '2025-04-08', 'Rapport', 1, 'etudiant124', '/uploads/1744136827657-RAPPORT_TP1.pdf', NULL, NULL, NULL),
-	(111, 'TESTDEV', 'test deee', 1, 'Validé', '2025-04-09', 'Rapport', 1, 'etudiant124', '/uploads/1744219003679-Anthropicâs Responsible Scaling Policy (version 2.1).pdf', NULL, NULL, NULL),
-	(112, 'rapport Hicham', 'Hicham v 2', 1, 'Soumis', '2025-04-10', 'Rapport', 1, 'etudiant124', '/uploads/1744297796024-Anthropicâs Responsible Scaling Policy (version 2.1).pdf', NULL, NULL, NULL),
-	(113, 'Test Hicham', 'sqfsqdfghsd', 1, 'Soumis', '2025-04-10', 'Rapport', 1, '1', '/uploads/1744297878128-Anthropicâs Responsible Scaling Policy (version 2.1).pdf', NULL, NULL, NULL),
-	(114, 'Test hicham 2', 'presentation', 1, 'Soumis', '2025-04-10', 'Présentation', 1, '1', '/uploads/1744307472291-Anthropicâs Responsible Scaling Policy (version 2.1).pdf', NULL, NULL, NULL);
+	(111, 'TESTDEV', 'test deee', 1, 'Validé', '2025-04-09', 'Rapport', 1, 'etudiant124', '/uploads/1744219003679-Anthropicâs Responsible Scaling Policy (version 2.1).pdf', NULL, NULL, NULL);
 
 DROP TABLE IF EXISTS `login`;
 CREATE TABLE IF NOT EXISTS `login` (
@@ -238,6 +235,7 @@ CREATE TABLE IF NOT EXISTS `login` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `login` (`id`, `email`, `password`, `role`, `user_id`) VALUES
+	(123, 'salma@est.ma', 'password', 'etudiant', 'HH255056')
 	(1, 'admin@est.ma', 'password', 'etudiant', '1'),
 	(2, 's5@gmail.com', 'motdepassedef', 'etudiant', '5et'),
 	(3, 's6@gmail.com', 'motdepasseghi', 'etudiant', '6et'),
